@@ -19,19 +19,31 @@ const todo = {
         'Checkpoints': 'Done',
         'Make checkpoints change texture based on spawn': 'Done'
     },
-    'A proper player': {
+    'A proper player movement system': {
         'Basic player controls that scale to deltaTime': 'Done',
-        'Add jump zones to static blocks': 'Done'
+        'Add jump zones to static blocks': 'Done',
+        'Let jump zones move with blocks': 'Not Started'
     },
-    'Particles': {
+    'Add particles': {
         'Create a system to make a burst of particles': 'Done',
         'Make getting a checkpoint show a burst of particles': 'Done',
         'Add death particles': 'Not Started',
         'Add coin collection particles': 'Not Started',
-        'Add a way that blocks can emit particles': 'Done'
+        'Add a way that blocks can emit particles': 'Done',
+        'Add particles that change direction': 'Done',
+        'Allow emitter offsets': 'Done',
+        'Allow multiple emitters': 'Done'
     },
     'Add gateways between levels': {
-
+        'Change the respawn system to allow gateways': 'Done',
+        'Add a gateway': 'Done',
+        'Add gateway particles when you jump levels': 'Done'
+    },
+    'Add text': {
+        'Add basic scaling text': 'Not Started',
+        'Add custom fonts': 'Not Started',
+        'Add custom colors': 'Not Started',
+        'Add custom text effects (eg outline, slanting, etc)': 'Not Started'
     },
     'Sounds': {
         'Add sounds when the player jumps': 'Not Started',
@@ -39,11 +51,10 @@ const todo = {
         'Add sounds when the player collides with something, volume scaling with speed': 'Not Started',
         'Sounds for coin collection': 'Not Started'
     },
-    'Collectables used to open gates (coins?)': {
-        'Add a tag to blocks to make them a collectable': 'Not Started',
-        'Add blocks that get removed when X collectables are collected of a specific type': 'Not Started',
-        'Add a way that removable block can show how many collectables are needed': 'Not Started',
-        'Add a hud to display collectables': 'Not Started'
+    'Add keys and unlock blocks': {
+        'Add keys that disappear when you hit them': 'Done',
+        'Make blocks with the unlockable tab vanish when the key is collected': 'Done',
+        'Make unlocking a block remove any jump zones': 'Done'
     },
     'Saving / loading': {
         'Save the players progress to the browser': 'Not Started',
@@ -58,13 +69,15 @@ const todo = {
         'Add custom movement strengths': 'Done'
     },
     'Add a good camera system': {
-        'Make the camera follow the player using direction and speed': 'Not Started',
-        'Keep the camera in bounds always': 'Not Started'
+        'Make the camera follow the player': 'Done',
+        'Keep the camera in bounds always': 'Done',
+        'Make the camera show the full level on first load for a little': 'Done'
     },
-    'Add more warnings': {
-        'Warn if a level has no exit': 'Not Started',
+    'Add warnings': {
         'Warn if a level has no player': 'Done',
-        'Warn if a non static block has a jump zone': 'Done'
+        'Warn if a non static block has a jump zone': 'Done',
+        'Warn if a gateway is missing its link': 'Done',
+        'Warn if there are no gateway links but there are gateways': 'Done'
     },
     'MAKE DOCS': {
         'Make docs for basic level structure': 'Not Started',
@@ -76,7 +89,8 @@ const todo = {
         'Make docs for particle emitters': 'Not Started',
         'Make docs for collision sounds': 'Not Started',
         'Make docs for event sounds': 'Not Started',
-        'Make docs for using collectables': 'Not Started'
+        'Make docs for using collectables': 'Not Started',
+        'Make docs for using gateways': 'Not Started'
     }
 }
 

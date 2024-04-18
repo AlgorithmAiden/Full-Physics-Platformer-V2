@@ -5,7 +5,13 @@ const ctx = canvas.getContext('2d')
 const blockSize = 50
 
 let engine = Matter.Engine.create()
-let currentWorld = testWorld
+// Matter.Render.run(Matter.Render.create({
+//     element: document.body,
+//     engine: engine
+// }))
+
+
+let currentWorld = world1
 let currentLevel
 
 let showJumpZones = false
@@ -13,7 +19,10 @@ let showJumpZones = false
 const viewport = { //cords are in blocksize
     min: { x: 0, y: 0 },
     max: { x: 0, y: 0 },
-    scale: 0 //used to know at what size to render
+    scale: 0, //used to know at what size to render
+    targetScale: 15, //how many blocks to show each direction
+    freezeTime: 1000,
+    freezeStart: 0
 }
 
 let playerLink
@@ -21,7 +30,11 @@ let matterLinks = []
 let jumpZones = []
 let killBlocks = []
 let checkpoints = []
+let gateways = []
+let keys = []
+let unlockables = []
 let spawn = { x: undefined, y: undefined }
+let levelSpawn = { x: undefined, y: undefined } //this is where you entered the level, used for level resets
 
 let particles = []
 let particleEmitters = []
@@ -89,7 +102,7 @@ function renderBlocks() {
             sprite = block.checkpointSprite
 
         sprite.forEach((layer) => {
-            const pathLengthOffset = layer?.outline?.connectEnds == true ? 2 : 0
+            const pathLengthOffset = layer.outline?.connectEnds != false ? 2 : 0
             const path = layer.path
             ctx.beginPath()
             for (let index = 0; index < layer.path.length + pathLengthOffset; index++) {
@@ -136,8 +149,9 @@ function renderParticles() {
                 age: 0, //goes up to 100 then dies
                 decay: emitter.decay,
                 size: Math.random() * (emitter.size.max - emitter.size.min) + emitter.size.min,
-                x: emitter.body.position.x / blockSize,
-                y: emitter.body.position.y / blockSize
+                x: emitter.body.position.x / blockSize + (emitter.x ? emitter.x : 0),
+                y: emitter.body.position.y / blockSize + (emitter.y ? emitter.y : 0),
+                turn: emitter.turn,
             })
     })
 
@@ -151,19 +165,34 @@ function renderParticles() {
         //update the particle
         particle.x += particle.speed * blockSize * Math.cos(particle.direction * Math.PI * 2)
         particle.y += particle.speed * blockSize * Math.sin(particle.direction * Math.PI * 2)
+        if (particle.turn) particle.direction += Math.random() * 2 * particle.turn - particle.turn
         particle.age += particle.decay
         if (particle.age == 100) particles.splice(index, 1)
     })
 }
 
-function render() {
+function moveViewport() {
+    if (Date.now() - viewport.freezeStart < viewport.freezeTime) return
+    const playerX = playerLink.body.position.x / blockSize
+    const playerY = playerLink.body.position.y / blockSize
+    const targetX1 = playerX - viewport.targetScale / 2
+    const targetY1 = playerY - viewport.targetScale / 2
+    const targetX2 = playerX + viewport.targetScale / 2
+    const targetY2 = playerY + viewport.targetScale / 2
 
+    viewport.min.x = Math.max(-.05, viewport.min.x + (targetX1 - viewport.min.x) / 25)
+    viewport.min.y = Math.max(-.05, viewport.min.y + (targetY1 - viewport.min.y) / 25)
+    viewport.max.x = Math.min(currentLevel.grid[0].length + .05, viewport.max.x + (targetX2 - viewport.max.x) / 25)
+    viewport.max.y = Math.min(currentLevel.grid.length + .05, viewport.max.y + (targetY2 - viewport.max.y) / 25)
+}
+
+function render() {
     updateViewport()
     clearScreen()
+    moveViewport()
     renderBlocks()
     renderParticles()
     requestAnimationFrame(render)
-
 }
 
 
@@ -197,17 +226,20 @@ function addBody(x, y, path, options = {}) {
     return { body, offset }
 }
 
-function loadLevel(level) {
+function loadLevel(level, x, y) {
     currentLevel = level
 
     //burn the old world to make way for the new
     Matter.World.clear(engine.world, true)
+    engine.world.bodies = []
     matterLinks = []
     jumpZones = []
     killBlocks = []
     checkpoints = []
+    keys = []
     spawn = { x: undefined, y: undefined }
 
+    //set the gravity
     engine.world.gravity.x = currentWorld.settings.gravity.x
     engine.world.gravity.y = currentWorld.settings.gravity.y
 
@@ -223,7 +255,19 @@ function loadLevel(level) {
     //add an invisible jumpZone to the floor
     jumpZones.push(Matter.Bodies.rectangle(width / 2, height, width, blockSize * .1 / 2, { isStatic: true, isSensor: true }))
 
-    playerLink = undefined
+    //if this is hte first time loaded the level, save the cords and make the level fill the viewport for a little
+    if (x != undefined) {
+        levelSpawn = { x, y }
+
+        //set the viewport to see the whole level
+        viewport.min = { x: -.05, y: -.05 }
+        viewport.max = { x: width / blockSize + .05, y: height / blockSize + .05 }
+
+        //freeze the viewport to show the level
+        viewport.freezeStart = Date.now()
+    }
+    x = levelSpawn.x
+    y = levelSpawn.y
 
     //load the levels blocks
     for (let x = 0; x < currentLevel.grid[0].length; x++)
@@ -247,50 +291,96 @@ function loadLevel(level) {
                     if (physics.mass != undefined) options.mass = physics.mass
                     if (physics.restitution != undefined) options.restitution = physics.restitution
                     if (physics.checkpoint) { options.isStatic = true; options.isSensor = true }
+                    if (physics.gateway) { options.isStatic = true; options.isSensor = true }
+                    if (physics.key) { options.isStatic = true; options.isSensor = true }
                 }
 
                 //add the block
-                const { body, offset } = addBody(x * blockSize + blockSize / 2, y * blockSize + blockSize / 2, block.path, options)
+                let { body, offset } = addBody(x * blockSize + blockSize / 2, y * blockSize + blockSize / 2, block.path, options)
                 matterLinks.push({ block, body, offset, startX: x, startY: y })
 
-                //hold on to the player if needed
-                if (currentLevel.key[currentLevel.grid[y][x] - 1] == currentWorld.settings.player)
-                    if (playerLink == undefined) {
-                        playerLink = matterLinks[matterLinks.length - 1]
-                        spawn = { x, y }
-                    }
-                    else
-                        throw new Error('Only one player block is allowed per level, more then that detected.')
-
                 //add the jumpZone, if any
+                let jumpZone
                 if (block.jumpZone)
-                    if (block.physics?.static)
-                        jumpZones.push(addBody(x * blockSize + blockSize / 2, y * blockSize + blockSize / 2, block.jumpZone, { isStatic: true, isSensor: true }).body)
-                    else
+                    if (block.physics?.static) {
+                        jumpZone = addBody(x * blockSize + blockSize / 2, y * blockSize + blockSize / 2, block.jumpZone, { isStatic: true, isSensor: true }).body
+                        jumpZones.push(jumpZone)
+                    } else
                         console.error('Non static blocks cannot have a jumpZone, jumpZone generation skipped.')
 
+                //find all composite bodies
+                let bodies = []
+                while (body.id != body.parent.id) body = body.parent
+                bodies.push(body)
+                addChildren(body)
+                function addChildren(body) {
+                    if (body.parts == undefined) return
+                    for (let child of body.parts) {
+                        if (!bodies.includes(child)) {
+                            bodies.push(child)
+                            addChildren([child])
+                        }
+                    }
+                }
+
                 //add to the killBlocks if needed
-                if (block.physics?.killer) killBlocks.push({ ...body, fullReload: block.physics.fullReload })
+                if (block.physics?.killer) bodies.forEach(body => killBlocks.push({ ...body, fullReload: block.physics.fullReload }))
 
                 //add to the checkpoints if needed
-                if (block.physics?.checkpoint) checkpoints.push({ ...body, x, y })
+                if (block.physics?.checkpoint) bodies.forEach(body => checkpoints.push({ ...body, x, y }))
 
-                //add the emitter, if any
-                if (block.particles)
-                    particleEmitters.push({ ...block.particles, body })
+                //add the emitter, if needed
+                if (block.emitters) block.emitters.forEach(emitter => particleEmitters.push({ ...emitter, body }))
+
+                //add the gateway, if needed
+                if (block.physics?.gateway) {
+                    if (currentLevel.gateways == undefined) throw new Error('Levels with gateways must have a gateway link list')
+                    let link
+                    currentLevel.gateways.forEach(gateway => {
+                        if (gateway.from.x == x && gateway.from.y == y) link = gateway
+                    })
+                    if (link == undefined) throw new Error('Gateway link list is missing a gateway in the grid')
+                    bodies.forEach(body => gateways.push({ body, link }))
+                }
+
+                //add the key, if needed
+                if (block.physics?.key) bodies.forEach(body => keys.push(body))
+
+                //add the unlockables, if needed
+                if (block.physics?.unlockable) bodies.forEach(body => unlockables.push({ ...body, jumpZone }))
             }
         }
 
-    //set the viewport to see the whole level
-    viewport.min = { x: 0, y: 0 }
-    viewport.max = { x: width / blockSize, y: height / blockSize }
 
-    //crash if there is no player, as this will break other things down the line
-    if (playerLink == undefined)
-        throw new Error('Level has no player, one player block is needed.')
+    //add the player
+    const block = currentWorld.blocks[currentWorld.settings.player]
+
+    //grab any physics options for the block
+    let options = {}
+    const physics = block.physics
+    if (physics) {
+        if (physics.density != undefined) options.density = physics.density
+        if (physics.friction != undefined) options.friction = physics.friction
+        if (physics.frictionAir != undefined) options.frictionAir = physics.frictionAir
+        if (physics.frictionStatic != undefined) options.frictionStatic = physics.frictionStatic
+        if (physics.mass != undefined) options.mass = physics.mass
+        if (physics.restitution != undefined) options.restitution = physics.restitution
+    }
+
+    //add the block
+    const { body, offset } = addBody(x * blockSize + blockSize / 2, y * blockSize + blockSize / 2, block.path, options)
+    matterLinks.push({ block, body, offset, startX: x, startY: y })
+
+    //hold on to the player if needed
+    playerLink = matterLinks[matterLinks.length - 1]
+    spawn = { x, y }
+
+    //add the emitter, if any
+    if (block.particles)
+        particleEmitters.push({ ...block.particles, body })
 }
 
-loadLevel(currentWorld.levels[currentWorld.settings.start])
+loadLevel(currentWorld.levels[currentWorld.settings.start.level], currentWorld.settings.start.x, currentWorld.settings.start.y)
 
 function respawn() {
     let body = playerLink.body
@@ -302,19 +392,19 @@ function respawn() {
 
 function movePlayer(deltaTime) {
     const player = playerLink.body
-    if (pressedKeys.includes('d'))
+    if (pressedKeys.includes('d') || pressedKeys.includes('ArrowRight'))
         Matter.Body.applyForce(
             player,
             { x: player.position.x + blockSize / 2, y: player.position.y - blockSize / 2 },
             { x: currentWorld.settings.movement.sidePower * deltaTime, y: 0 }
         )
-    if (pressedKeys.includes('a'))
+    if (pressedKeys.includes('a') || pressedKeys.includes('ArrowLeft'))
         Matter.Body.applyForce(
             player,
             { x: player.position.x - blockSize / 2, y: player.position.y - blockSize / 2 },
             { x: -currentWorld.settings.movement.sidePower * deltaTime, y: 0 }
         )
-    if (pressedKeys.includes('w') && Matter.Query.collides(player, jumpZones).length > 0)
+    if ((pressedKeys.includes('w') || pressedKeys.includes('ArrowUp') || pressedKeys.includes(' ')) && Matter.Query.collides(player, jumpZones).length > 0)
         Matter.Body.setVelocity(
             player,
             { x: 0, y: -currentWorld.settings.movement.jumpPower }
@@ -339,12 +429,19 @@ function update() {
 }
 
 //run all the collision events
-
 Matter.Events.on(engine, 'collisionStart', (e) => {
+
+    //run thru every collision
     for (let index = 0; index < e.pairs.length; index++) {
         let bodyA = e.pairs[index].bodyA
         let bodyB = e.pairs[index].bodyB
+
+        //check if the player was one of the bodies
         if (bodyA.id == playerLink.body.id || bodyB.id == playerLink.body.id) {
+
+            // console.log(bodyA,bodyB)
+
+            //check for killer blocks
             for (let subIndex = 0; subIndex < killBlocks.length; subIndex++)
                 if (bodyA.id == killBlocks[subIndex].id || bodyB.id == killBlocks[subIndex].id) {
                     for (let i = 0; i < 100; i++) particles.push({
@@ -362,6 +459,8 @@ Matter.Events.on(engine, 'collisionStart', (e) => {
                     else
                         respawn()
                 }
+
+            //check for checkpoints
             for (let subIndex = 0; subIndex < checkpoints.length; subIndex++)
                 if (bodyA.id == checkpoints[subIndex].id || bodyB.id == checkpoints[subIndex].id) {
                     if (!(spawn.x == checkpoints[subIndex].x && spawn.y == checkpoints[subIndex].y))
@@ -377,6 +476,87 @@ Matter.Events.on(engine, 'collisionStart', (e) => {
                         });
                     [spawn.x, spawn.y] = [checkpoints[subIndex].x, checkpoints[subIndex].y]
                 }
+
+            //check for gateways
+            for (let subIndex = 0; subIndex < gateways.length; subIndex++) {
+                const gateway = gateways[subIndex]
+                if (bodyA.id == gateway.body.id || bodyB.id == gateway.body.id) {
+                    for (let i = 0; i < 100; i++) particles.push({
+                        color: currentWorld.settings.particles.gateway,
+                        speed: Math.random() / 1000,
+                        direction: Math.random(),
+                        age: 0, //goes up to 100 then dies
+                        decay: 1,
+                        size: Math.random() / 25,
+                        x: playerLink.body.position.x / blockSize,
+                        y: playerLink.body.position.y / blockSize
+                    })
+                    loadLevel(currentWorld.levels[gateway.link.level], gateway.link.to.x, gateway.link.to.y)
+                }
+            }
+
+            //check for keys
+            for (let subIndex = 0; subIndex < keys.length; subIndex++) {
+                if (bodyA.id == keys[subIndex].id || bodyB.id == keys[subIndex].id) {
+                    let bodies = []
+                    let body = keys[subIndex]
+                    while (body.id != body.parent.id) body = body.parent
+                    bodies.push(body)
+                    addChildren(body)
+                    function addChildren(body) {
+                        if (body.parts == undefined) return
+                        for (let child of body.parts) {
+                            if (!bodies.includes(child)) {
+                                bodies.push(child)
+                                addChildren([child])
+                            }
+                        }
+                    }
+                    bodies.forEach(body => {
+                        matterLinks = matterLinks.filter(link => link.body.id != body.id)
+                        Matter.Composite.remove(engine.world, body, true)
+                    })
+                    for (let i = 0; i < 100; i++) particles.push({
+                        color: currentWorld.settings.particles.key,
+                        speed: Math.random() / 1000,
+                        direction: Math.random(),
+                        age: 0, //goes up to 100 then dies
+                        decay: 1,
+                        size: Math.random() / 25,
+                        x: keys[subIndex].position.x / blockSize,
+                        y: keys[subIndex].position.y / blockSize
+                    })
+                    unlockables.forEach(body => {
+                        if (body.jumpZone == undefined) {
+                            let bodies = []
+                            while (body.id != body.parent.id) body = body.parent
+                            bodies.push(body)
+                            addChildren(body)
+                            function addChildren(body) {
+                                if (body.parts == undefined) return
+                                for (let child of body.parts) {
+                                    if (!bodies.includes(child)) {
+                                        bodies.push(child)
+                                        addChildren([child])
+                                    }
+                                }
+                            }
+                            bodies.forEach(body => {
+                                matterLinks = matterLinks.filter(link => link.body.id != body.id)
+                                Matter.Composite.remove(engine.world, body, true)
+                            })        
+                            matterLinks = matterLinks.filter(link => link.body.id != body.id)
+                            Matter.Composite.remove(engine.world, body, true)
+                        } else {
+                            jumpZones = jumpZones.filter(link => link.id != body.jumpZone.id)
+                            Matter.Composite.remove(engine.world, body.jumpZone, true)
+                            matterLinks = matterLinks.filter(link => link.body.id != body.id)
+                            Matter.Composite.remove(engine.world, Matter.Composite.get(engine.world, body.id, 'body'), true)
+                        }
+                    })
+                    unlockables = []
+                }
+            }
         }
     }
 })
@@ -413,5 +593,6 @@ document.addEventListener('keypress', (e) => {
 update()
 
 requestAnimationFrame(render)
+
 
 //joke idea, remove the deltaTime cap, and add some logic to keep players inside bounds, and create a level that uses deltaTime glitching to play
