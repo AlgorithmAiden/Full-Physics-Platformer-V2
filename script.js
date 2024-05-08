@@ -5,14 +5,14 @@ const ctx = canvas.getContext('2d')
 const blockSize = 50
 
 let engine = Matter.Engine.create()
-// Matter.Render.run(Matter.Render.create({
-//     element: document.body,
-//     engine: engine
-// }))
 
+let currentWorld, currentLevel
 
-let currentWorld = world1
-let currentLevel
+currentWorld = JSON.parse(localStorage.getItem('world'))
+
+if (currentWorld == undefined) currentWorld = demoWorld
+
+console.log(currentWorld)
 
 let showJumpZones = false
 
@@ -194,7 +194,6 @@ function render() {
     renderParticles()
     requestAnimationFrame(render)
 }
-
 
 let lastDeltaTime = 0
 
@@ -407,7 +406,7 @@ function movePlayer(deltaTime) {
     if ((pressedKeys.includes('w') || pressedKeys.includes('ArrowUp') || pressedKeys.includes(' ')) && Matter.Query.collides(player, jumpZones).length > 0)
         Matter.Body.setVelocity(
             player,
-            { x: 0, y: -currentWorld.settings.movement.jumpPower }
+            { x: player.velocity.x, y: -currentWorld.settings.movement.jumpPower }
         )
 }
 
@@ -438,8 +437,6 @@ Matter.Events.on(engine, 'collisionStart', (e) => {
 
         //check if the player was one of the bodies
         if (bodyA.id == playerLink.body.id || bodyB.id == playerLink.body.id) {
-
-            // console.log(bodyA,bodyB)
 
             //check for killer blocks
             for (let subIndex = 0; subIndex < killBlocks.length; subIndex++)
@@ -544,7 +541,7 @@ Matter.Events.on(engine, 'collisionStart', (e) => {
                             bodies.forEach(body => {
                                 matterLinks = matterLinks.filter(link => link.body.id != body.id)
                                 Matter.Composite.remove(engine.world, body, true)
-                            })        
+                            })
                             matterLinks = matterLinks.filter(link => link.body.id != body.id)
                             Matter.Composite.remove(engine.world, body, true)
                         } else {
@@ -560,7 +557,6 @@ Matter.Events.on(engine, 'collisionStart', (e) => {
         }
     }
 })
-
 
 //keep track of what keys are pressed
 let pressedKeys = []
@@ -594,5 +590,38 @@ update()
 
 requestAnimationFrame(render)
 
+document.addEventListener('DOMContentLoaded', function () {
+    const dropArea = document.body;
 
-//joke idea, remove the deltaTime cap, and add some logic to keep players inside bounds, and create a level that uses deltaTime glitching to play
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false)
+    })
+
+    function preventDefaults(e) {
+        e.preventDefault()
+        e.stopPropagation()
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false)
+
+    function handleDrop(e) {
+        let dt = e.dataTransfer
+        let file = dt.files[0]
+
+        processFile(file)
+    }
+
+    function processFile(file) {
+        if (file.type === 'application/json') {
+            const reader = new FileReader()
+            reader.readAsText(file)
+            reader.onload = function () {
+                localStorage.setItem('world', reader.result)
+                location.reload()
+            }
+            reader.onerror = function () {
+                console.error("Error reading file!")
+            }
+        }
+    }
+})

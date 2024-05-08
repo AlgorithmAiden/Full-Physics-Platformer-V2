@@ -1,0 +1,208 @@
+html,
+body {
+    scrollbar-color: #666 #151515;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    background-color: #333;
+}
+
+#canvasDiv {
+    height: 100%;
+    width: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    background-color: #000;
+}
+
+button {
+    margin: 2.5px;
+    color: #fff;
+    background-color: #333;
+    border: 1px solid #666;
+    border-radius: 5px;
+    transform: scale(1);
+    transition: all .25s ease-in-out;
+}
+
+button:hover {
+    color: #0f0;
+    background-color: #030;
+    border-color: #0f0;
+    transform: scale(1.25);
+    z-index: 100;
+}
+
+textarea {
+    margin: 2.5px;
+    resize: none;
+    text-align: center;
+    color: #fff;
+    background-color: #333;
+    border: 1px solid #666;
+    border-radius: 5px;
+    transform: scale(1);
+    transition: all .25s ease-in-out;
+}
+
+textarea:focus {
+    color: #0f0;
+    background-color: #030;
+    border: 1px solid #0f0;
+    outline: solid 0px #0f0;
+    transform: scale(1.1);
+    z-index: 100;
+}
+
+#inputs {
+    overflow: hidden scroll;
+    width: 50%;
+    background-color: #333;
+    display: flex;
+    justify-content: center;
+    align-content: baseline;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.subInput {
+    margin: 5px;
+    padding: 5px;
+    width: fit-content;
+    height: fit-content;
+    flex-direction: column;
+    background-color: #151515;
+    border-radius: 10px;
+    border: 1px solid #666;
+}
+
+.subInput p {
+    margin: 5px;
+    font-size: 15px;
+    color: #fff;
+    text-align: center;
+}
+
+.subInput_subDiv {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+}
+
+.dropdown {
+    margin: 5px;
+    padding: 5px;
+    width: fit-content;
+    height: fit-content;
+    display: flex;
+    flex-direction: column;
+    background-color: #151515;
+    border-radius: 10px;
+    border: 1px solid #666;
+}
+
+.dropdown_wrapper {
+    height: 0;
+}
+
+.dropdown:hover .dropdown_wrapper {
+    height: fit-content;
+}
+
+.dropdown_item {
+    margin: 5px;
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    transform: scale(0);
+}
+
+.dropdown:hover .dropdown_item {
+    transform: scale(1);
+}
+
+.dropdown p {
+    margin: 5px;
+    font-size: 15px;
+    color: #fff;
+    text-align: center;
+}
+
+.dropdown_item p {
+    margin: 2.5px;
+    padding: 2.5px;
+    color: #fff;
+    background-color: #333;
+    border: 1px solid #666;
+    border-radius: 5px;
+}
+
+.focusedTextInput {
+    margin: 5px;
+    color: #0f0;
+    border-radius: 5px;
+    padding: 5px;
+    background-color: #030;
+    border: 1px solid #0f0;
+    outline: solid 0px #0f0;
+    display: flex;
+    flex-direction: column;
+}
+
+.focusedTextInput p {
+    margin: 5px;
+    font-size: 15px;
+    text-align: center;
+}
+
+.focusedTextInput button,
+.focusedTextInput textarea {
+    color: #0f0;
+    border-radius: 5px;
+    background-color: #030;
+    border: 1px solid #0f0;
+    outline: solid 0px #0f0;
+}
+
+.invalidInput,
+.invalidInput button,
+.invalidInput textarea {
+    color: #f00;
+    background-color: #300;
+    border: 1px solid #f00;
+}
+
+.colorInput {
+    background-color: #333;
+    border: 1px solid #666;
+    border-radius: 5px;
+}
+
+#fileLabel {
+    display: inline-block;
+    margin: 10px;
+    padding: 10px;
+    color: #fff;
+    background-color: #151515;
+    border-radius: 10px;
+    border: 1px solid #666;
+    cursor: pointer;
+    transform: scale(1);
+    transition: all .25s ease-in-out;
+}
+
+#fileLabel:hover {
+    color: #0f0;
+    background-color: #030;
+    border: 1px solid #0f0;
+    outline: solid 0px #0f0;
+    transform: scale(1.25);
+    z-index: 100;
+}

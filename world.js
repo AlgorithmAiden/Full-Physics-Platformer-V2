@@ -1,4 +1,4 @@
-const world1 = {
+const demoWorld = {
     blocks: {
         basicSolid: {
             jumpZone: [
@@ -120,6 +120,7 @@ const world1 = {
         },
         player: {
             path: [
+                // { x: .5, y: .25 },//
                 { x: .25, y: .25 },
                 { x: .75, y: .25 },
                 { x: .75, y: .75 },
@@ -128,10 +129,12 @@ const world1 = {
             sprite: [
                 {
                     path: [
+                        // { x: .5, y: .25 },//
                         { x: .25, y: .25 },
                         { x: .75, y: .25 },
                         { x: .75, y: .75 },
                         { x: .25, y: .75 }
+
                     ],
                     color: '#666',
                     outline: {
@@ -179,7 +182,6 @@ const world1 = {
                     }
                 }
             ]
-
         },
         gateway: {
             path: [
@@ -607,7 +609,7 @@ const world1 = {
         },
     },
     levels: {
-        intro_walls: {
+        demo_walls: {
             key: [
                 'basicSolid',
                 'slimSolid',
@@ -629,11 +631,11 @@ const world1 = {
                 {
                     from: { x: 24, y: 9 },
                     to: { x: 0, y: 8 },
-                    level: 'intro_jumping'
+                    level: 'demo_jumping'
                 }
             ]
         },
-        intro_jumping: {
+        demo_jumping: {
             key: [
                 'basicSolid',
                 'gateway'
@@ -654,11 +656,11 @@ const world1 = {
                 {
                     from: { x: 24, y: 0 },
                     to: { x: 0, y: 8 },
-                    level: 'intro_killers'
+                    level: 'demo_killers'
                 }
             ]
         },
-        intro_killers: {
+        demo_killers: {
             key: [
                 'basicSolid',
                 'gateway',
@@ -683,11 +685,11 @@ const world1 = {
                 {
                     from: { x: 24, y: 0 },
                     to: { x: 9, y: 8 },
-                    level: 'intro_keys'
+                    level: 'demo_keys'
                 }
             ]
         },
-        intro_keys: {
+        demo_keys: {
             key: [
                 'basicSolid',
                 'gateway',
@@ -714,7 +716,7 @@ const world1 = {
                 {
                     from: { x: 0, y: 0 },
                     to: { x: 0, y: 9 },
-                    level: 'intro_walls'
+                    level: 'demo_walls'
                 }
             ]
         }
@@ -739,7 +741,7 @@ const world1 = {
             sidePower: .00005,
         },
         start: {
-            level: 'intro_walls',
+            level: 'demo_walls',
             x: 0,
             y: 9
         },

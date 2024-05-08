@@ -1,0 +1,7 @@
+Path creator:
+ * path control buttons:
+ * * remove last point: removes the last point from the current path
+ * * save path: pops open a window to name the path, then saves it to storage
+ * * clear path: resets the path
+ * * load / remove path:
+ * * *
